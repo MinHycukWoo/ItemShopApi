@@ -11,6 +11,8 @@ import com.example.itemShopApi.service.MemberService;
 import com.example.itemShopApi.service.RefreshTokenService;
 import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+@Tag(name = "JWT 컨트롤러", description = "JWT 로그인 API입니다.")
 
 @RestController
 @RequiredArgsConstructor
@@ -43,7 +47,10 @@ public class MemberController {
     //@RequestBody 컨트롤러 메소드에 @RequestBody라고 적혀있으면
     //httpBody로 값을 받는다는 의미다
     @PostMapping("/signup")
-    public ResponseEntity signup (@RequestBody @Valid MemberSignupDto memberSignupDto, BindingResult bindingResult){
+    @Operation(summary = "회원가입" , description = "JWT 사용자 등록을 합니다.")
+    public ResponseEntity signup (
+            @Parameter(name="memberSignupDto" ,description = "회원가입 정보")
+            @RequestBody @Valid MemberSignupDto memberSignupDto, BindingResult bindingResult){
         System.out.println("memberSignupDto ++ " + memberSignupDto);
         if(bindingResult.hasErrors()){
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
@@ -65,6 +72,7 @@ public class MemberController {
         //API 반환값으로 사용할 DTO
         MemberSignupResponseDto memberSignupResponse = new MemberSignupResponseDto();
         memberSignupResponse.setMemberId(saveMember.getMemberId());
+        System.out.println("saveMember.getMemberId()==" + saveMember.getMemberId());
         memberSignupResponse.setName(saveMember.getName());
         memberSignupResponse.setRegdate(saveMember.getRegdate());
         memberSignupResponse.setEmail(saveMember.getEmail());
@@ -77,7 +85,10 @@ public class MemberController {
 
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody @Valid MemberLoginDto loginDto , BindingResult bindingResult){
+    @Operation(summary = "로그인" , description = "JWT 토큰을 발급합니다.")
+    public ResponseEntity login(
+            @Parameter(name="loginDto" ,description = "로그인 정보")
+            @RequestBody @Valid MemberLoginDto loginDto , BindingResult bindingResult){
         //TODO email에 해당하는 사용자 정보를 읽어와서 암호가 맞는지 검사하는 코드가 있어야한다.
         if(bindingResult.hasErrors()){
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
@@ -117,28 +128,11 @@ public class MemberController {
         return new ResponseEntity(loginResponse , HttpStatus.OK);
     }
 
-    @PostMapping("/loginTest")
-    public ResponseEntity login(@RequestBody @Valid MemberLoginDto loginDto){
-        Long memberId = 1L;
-        String email = loginDto.getEmail();
-        List<String> roles = List.of("ROLE_USER");
-
-        String accessToken = jwtTokenizer.createAccessToken(memberId , email , roles);
-        String refreshToken = jwtTokenizer.createRefreshToken(memberId, email , roles);
-
-        MemberLoginResponseDto loginResponse = MemberLoginResponseDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .memberId(memberId)
-                .nickname("nickname")
-                .build();
-        return new ResponseEntity(loginResponse , HttpStatus.OK);
-    }
-
-
-
     @DeleteMapping("/logout")
-    public ResponseEntity logout(@RequestBody RefreshTokenDto refreshTokenDto){
+    @Operation(summary = "로그아웃" , description = "JWT 토큰을 삭제합니다..")
+    public ResponseEntity logout(
+            @Parameter(name="refreshTokenDto" ,description = "Refresh 토큰정보")
+            @RequestBody RefreshTokenDto refreshTokenDto){
         refreshTokenService.deleteRefreshToken(refreshTokenDto.getRefreshToken());
         return new ResponseEntity(HttpStatus.OK);
     }
@@ -155,6 +149,7 @@ public class MemberController {
      * 3.AccessToken을 발급하여 기존 RefreshToken과 함께 응답한다.
      */
     @PostMapping("/refreshToken")
+    @Operation(summary = "JWT 재발급" , description = "JWT 토큰을 재발급합니다.")
     public ResponseEntity requestRefresh(@RequestBody RefreshTokenDto refreshTokenDto){
         System.out.println("refreshTokenDto ==" + refreshTokenDto);
         //post 의 body로 refreshTokenDto를 받는다.
@@ -185,10 +180,37 @@ public class MemberController {
     }
 
     @GetMapping("/info")
+    @Operation(summary = "사용자 정보" , description = "사용자 정보를 조회합니다.")
     public ResponseEntity userinfo(@IfLogin LoginUserDto loginUserDto){
         Member member = memberService.findByEmail(loginUserDto.getEmail());
+        List<String> roles = member.getRoles().stream().map(Role::getName).collect(Collectors.toList());
+        log.info("roles = {}" + roles);
         return new ResponseEntity(member, HttpStatus.OK);
     }
 
 
+    @PostMapping("/addRole")
+    @Operation(summary = "관리자 권한부여(재 로그인 필요) " , description = "기존회원에 관리자 권한을 합니다.")
+    public ResponseEntity addRoleAdmin (@RequestBody RefreshTokenDto refreshTokenDto){
+
+        //member 객체에 받아온 값을 넣어준다.
+        RefreshToken refreshToken = refreshTokenService.findRefreshToken(refreshTokenDto.getRefreshToken()).orElseThrow(()-> new IllegalArgumentException("Refresh token not found"));
+        Claims claims = jwtTokenizer.parseRefreshToken(refreshToken.getValue());
+        Long memberId = Long.valueOf((Integer)claims.get("userId"));
+
+        Member member = memberService.getMember(memberId).orElseThrow(()-> new IllegalArgumentException("Member Not Found"));
+     
+        Member saveMember = memberService.addRoleMember(member);
+
+        //API 반환값으로 사용할 DTO
+        MemberSignupResponseDto memberSignupResponse = new MemberSignupResponseDto();
+        memberSignupResponse.setMemberId(saveMember.getMemberId());
+        memberSignupResponse.setName(saveMember.getName());
+        memberSignupResponse.setRegdate(saveMember.getRegdate());
+        memberSignupResponse.setEmail(saveMember.getEmail());
+
+        //회원가입
+        return new ResponseEntity(memberSignupResponse , HttpStatus.OK);
+
+    }
 }

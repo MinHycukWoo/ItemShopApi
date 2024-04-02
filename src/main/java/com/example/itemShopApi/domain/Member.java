@@ -1,6 +1,7 @@
 package com.example.itemShopApi.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,16 +22,20 @@ public class Member {
     @Id //이 필드가 Table의 PK
     @Column(name = "member_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY) //memberId는 자동으로 생성되도록한다 1 2 3 4~
+    @Schema(description = "사용자 아이디" , nullable = false , example = "test")
     private Long memberId;
 
     @Column(length = 255 ,unique = true) //유일한값
+    @Schema(description = "사용자 이메일" , nullable = false , example = "test@gamil.com")
     private String email;
 
     @Column(length = 50)
+    @Schema(description = "사용자 이름" , nullable = false , example = "홍길동")
     private String name;
 
     @JsonIgnore//암호화!
     @Column(length = 500)
+    @Schema(description = "사용자 비밀번호" , nullable = false , example = "12345")
     private String password;
 
 
@@ -56,6 +61,7 @@ public class Member {
             joinColumns = @JoinColumn(name = "member_id"), //member가 member_role을 참조하기위한 FK 역활을한다
             inverseJoinColumns = @JoinColumn(name = "role_id") //관계테이블 role 쪽을 참조하기위한 외래키를 지정
     )
+    @Schema(description = "사용자 권한" , nullable = true , example = "ROLE_")
     private Set<Role> roles = new HashSet<>();
     /**
      * 그래서 테이블이 자동으로 만들어지게된다.

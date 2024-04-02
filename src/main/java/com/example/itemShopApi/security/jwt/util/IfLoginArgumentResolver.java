@@ -68,8 +68,10 @@ public class IfLoginArgumentResolver implements HandlerMethodArgumentResolver {
         if(principal == null){
             return null;
         }
-
-        loginUserDto.setEmail((String) principal);
+        LoginInfoDto loginInfoDto = (LoginInfoDto) principal;
+        loginUserDto.setMemberId(loginInfoDto.getMemberId());
+        loginUserDto.setEmail(loginInfoDto.getEmail());
+        //loginUserDto.setEmail((String) principal);
         /*
         LoginInfoDto loginInfoDto = (LoginInfoDto) principal;
         loginUserDto.setEmail(loginInfoDto.getEmail());

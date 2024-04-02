@@ -34,7 +34,13 @@ public class CartItemService {
 
     @Transactional
     public boolean isCartItemExist(Long memberId , Long cartId , Long productId){
+
+        System.out.println("loginUserDto.getMemberId() ==" + memberId);
+        System.out.println("addCartItemDto.getCartId() ==" + cartId);
+        System.out.println("addCartItemDto.getProductId() ==" + productId);
+
         boolean check = cartItemRepository.existsByCart_memberIdAndCart_idAndProductId(memberId, cartId , productId);
+        System.out.println("check ==" + check);
         return check;
     }
 

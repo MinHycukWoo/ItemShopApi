@@ -83,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         //log.info("getAuthentication = {}" , token);
         JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(token);
         Authentication authenticate = authenticationManager.authenticate(authenticationToken);
-        //log.info("authenticationToken = {}" , authenticationToken);
+        log.info("authenticate ++ = {}" , authenticate);
         SecurityContextHolder.getContext()
                 .setAuthentication(authenticate);
     }

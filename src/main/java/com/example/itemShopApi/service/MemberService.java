@@ -47,6 +47,18 @@ public class MemberService {
         return saveMember;
     }
 
+    @Transactional
+    public Member addRoleMember(Member member){
+        Optional<Role> userRole = roleRepository.findByName("ROLE_ADMIN");
+
+        member.addRole(userRole.get());
+
+        Member saveMember = memberRepository.save(member);
+        return saveMember;
+    }
+
+
+
     @Transactional(readOnly = true)
     public Optional<Member> getMember(Long memberId){
         return memberRepository.findById(memberId);
